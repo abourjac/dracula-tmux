@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
+# Usage: cwd.sh [session_id]
+#   session_id: tmux session to query, e.g. $3 (passed by dracula.sh)
 
 current_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$current_dir/utils.sh"
 
-# return current working directory of tmux pane
+# Print the current path of the active pane of session $1.
+# Without $1, tmux picks an arbitrary session, possibly the wrong one.
 getPaneDir() {
-  nextone="false"
-  ret=""
-  for i in $(tmux list-panes -F "#{pane_active} #{pane_current_path}"); do
-    [ "$i" == "1" ] && nextone="true" && continue
-    [ "$i" == "0" ] && nextone="false"
-    [ "$nextone" == "true" ] && ret+="$i "
-  done
-  echo "${ret%?}"
+  local session_id="$1"
+  if [ -n "$session_id" ]; then
+    tmux list-panes -t "$session_id" -F '#{pane_active}#{pane_current_path}' 2>/dev/null | sed -n 's/^1//p'
+  else
+    tmux list-panes -F '#{pane_active}#{pane_current_path}' 2>/dev/null | sed -n 's/^1//p'
+  fi
 }
 
 main() {
-  path="$(getPaneDir)"
+  path="$(getPaneDir "$1")"
 
   if [[ "$path" == "$HOME" ]]; then
     echo "~"
@@ -50,4 +51,4 @@ main() {
 }
 
 #run main driver program
-main
+main "$@"
